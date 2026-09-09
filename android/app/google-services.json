@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "687051923916",
+    "project_id": "wchatalwzeer",
+    "storage_bucket": "wchatalwzeer.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:687051923916:android:49ff5e37b899b084ddbd69",
+        "android_client_info": {
+          "package_name": "com.wchat.alwzeer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5UNjTvf-0N51m3IJ-Rit0PW-DXRMcFZ4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
