@@ -1,0 +1,515 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(const AlWazirChatApp());
+}
+
+class AlWazirChatApp extends StatelessWidget {
+  const AlWazirChatApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Al-Wazir Chat',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF121212),
+        primaryColor: const Color(0xFFD4AF37),
+      ),
+      home: const LoginScreen(),
+    );
+  }
+}
+
+// ---------------------------------------------------------
+// 1. شاشة تسجيل الدخول (تسجيل / دخول)
+// ---------------------------------------------------------
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _codeController = TextEditingController();
+
+  String _selectedCountryCode = '+967';
+  String? _verificationId;
+  bool _loading = false;
+  bool _codeSent = false;
+
+  Future<void> _sendCode() async {
+    final phone = _phoneController.text.trim();
+
+    if (phone.isEmpty) {
+      _message('أدخل رقم الهاتف أولاً');
+      return;
+    }
+
+    setState(() => _loading = true);
+
+    try {
+      await _auth.verifyPhoneNumber(
+        phoneNumber: '$_selectedCountryCode$phone',
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          await _auth.signInWithCredential(credential);
+          if (mounted) _saveUserAndGoToApp(await _auth.signInWithCredential(credential));
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          _message(e.message ?? 'تعذر إرسال رمز التحقق');
+          if (mounted) setState(() => _loading = false);
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          if (!mounted) return;
+          setState(() {
+            _verificationId = verificationId;
+            _codeSent = true;
+            _loading = false;
+          });
+          _message('تم إرسال رمز التحقق إلى هاتفك');
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          _verificationId = verificationId;
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        _message('حدث خطأ: $e');
+      }
+    }
+  }
+
+  Future<void> _verifyCode() async {
+    final code = _codeController.text.trim();
+
+    if (_verificationId == null || code.length < 6) {
+      _message('أدخل رمز التحقق المكون من 6 أرقام');
+      return;
+    }
+
+    setState(() => _loading = true);
+
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: _verificationId!,
+        smsCode: code,
+      );
+
+      await _auth.signInWithCredential(credential);
+
+      if (mounted) _saveUserAndGoToApp(await _auth.signInWithCredential(credential));
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        setState(() => _loading = false);
+        _message(e.message ?? 'رمز التحقق غير صحيح');
+      }
+    }
+  }
+
+  Future<void> _saveUserAndGoToApp(UserCredential credential) async {
+    final user = credential.user;
+    if (user == null) return;
+
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+      'uid': user.uid,
+      'phoneNumber': user.phoneNumber,
+      'lastLogin': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    if (!mounted) return;
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const MainTabsScreen()),
+    );
+  }
+
+  void _message(String text) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(text)),
+    );
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _codeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF121212),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Spacer(),
+              Container(
+                width: 90,
+                height: 90,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFD4AF37),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Text('👑', style: TextStyle(fontSize: 45)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '👑 Al-Wazir Chat',
+                style: TextStyle(
+                  color: Color(0xFFD4AF37),
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                _codeSent
+                    ? 'أدخل رمز التحقق المرسل إلى هاتفك'
+                    : 'أدخل رقم هاتفك للتسجيل أو الدخول',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 15,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 30),
+
+              if (!_codeSent)
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: const Color(0xFFD4AF37),
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          dropdownColor: const Color(0xFF1E232A),
+                          value: _selectedCountryCode,
+                          items: ['+967', '+966', '+971', '+1', '+20']
+                              .map(
+                                (code) => DropdownMenuItem(
+                                  value: code,
+                                  child: Text(
+                                    code,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(
+                                () => _selectedCountryCode = val,
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: 'رقم الهاتف',
+                          labelStyle: const TextStyle(
+                            color: Color(0xFFD4AF37),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                TextField(
+                  controller: _codeController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    letterSpacing: 8,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'رمز التحقق',
+                    labelStyle: TextStyle(
+                      color: Color(0xFFD4AF37),
+                    ),
+                  ),
+                ),
+
+              const SizedBox(height: 25),
+
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD4AF37),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                  ),
+                  onPressed: _loading
+                      ? null
+                      : (_codeSent ? _verifyCode : _sendCode),
+                  child: _loading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.black,
+                          ),
+                        )
+                      : Text(
+                          _codeSent ? 'تحقق ودخول' : 'إرسال رمز التحقق',
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+
+              if (_codeSent) ...[
+                const SizedBox(height: 15),
+                TextButton(
+                  onPressed: _loading
+                      ? null
+                      : () => setState(() => _codeSent = false),
+                  child: const Text(
+                    'تغيير رقم الهاتف',
+                    style: TextStyle(color: Color(0xFFD4AF37)),
+                  ),
+                ),
+              ],
+
+              const Spacer(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class MainTabsScreen extends StatefulWidget {
+  const MainTabsScreen({super.key});
+
+  @override
+  State<MainTabsScreen> createState() => _MainTabsScreenState();
+}
+
+class _MainTabsScreenState extends State<MainTabsScreen> {
+  int _currentIndex = 0;
+
+  final List<Widget> _pages = const [
+    ChatsTab(),
+    StatusTab(),
+    GroupsTab(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _pages[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        backgroundColor: const Color(0xFF181818),
+        selectedItemColor: const Color(0xFFD4AF37),
+        unselectedItemColor: Colors.grey,
+        onTap: (index) {
+          setState(() => _currentIndex = index);
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.chat_bubble_rounded),
+            label: 'المحادثات',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.style_rounded),
+            label: 'الحالات',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.groups_rounded),
+            label: 'المجموعات',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------
+// 3. تبويب المحادثات
+// ---------------------------------------------------------
+class ChatsTab extends StatelessWidget {
+  const ChatsTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1E232A),
+        title: const Row(
+          children: [
+            Text('👑 ', style: TextStyle(fontSize: 20)),
+            Text('Al-Wazir Chat', style: TextStyle(color: Color(0xFFD4AF37))),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.phone, color: Color(0xFFD4AF37)),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Icons.videocam, color: Color(0xFFD4AF37)),
+            onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Icons.more_vert, color: Color(0xFFD4AF37)),
+            onPressed: () {},
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          const Expanded(
+            child: Center(
+              child: Text(
+                'لا توجد محادثات حالياً',
+                style: TextStyle(color: Colors.white54, fontSize: 16),
+              ),
+            ),
+          ),
+          // شريط كتابة الرسالة الأسفل
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            color: const Color(0xFF181818),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.camera_alt, color: Color(0xFFD4AF37)),
+                  onPressed: () {},
+                ),
+                IconButton(
+                  icon: const Icon(Icons.image, color: Color(0xFFD4AF37)),
+                  onPressed: () {},
+                ),
+                const Expanded(
+                  child: TextField(
+                    style: TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'اكتب رسالة...',
+                      hintStyle: TextStyle(color: Colors.grey),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.send, color: Color(0xFFD4AF37)),
+                  onPressed: () {},
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------
+// 4. تبويب الحالات
+// ---------------------------------------------------------
+class StatusTab extends StatelessWidget {
+  const StatusTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1E232A),
+        centerTitle: true,
+        title: const Text('الحالات', style: TextStyle(color: Color(0xFFD4AF37))),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'اضغط + لإضافة حالة جديدة (صور / فيديو)',
+              style: TextStyle(color: Colors.white70, fontSize: 16),
+            ),
+            const SizedBox(height: 20),
+            FloatingActionButton(
+              backgroundColor: const Color(0xFFD4AF37),
+              onPressed: () {},
+              child: const Icon(Icons.add_a_photo, color: Colors.black),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------
+// 5. تبويب المجموعات
+// ---------------------------------------------------------
+class GroupsTab extends StatelessWidget {
+  const GroupsTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1E232A),
+        centerTitle: true,
+        title: const Text('المجموعات', style: TextStyle(color: Color(0xFFD4AF37))),
+      ),
+      body: const Center(
+        child: Text(
+          'لا توجد مجموعات حتى الآن',
+          style: TextStyle(color: Colors.white54, fontSize: 16),
+        ),
+      ),
+    );
+  }
+}

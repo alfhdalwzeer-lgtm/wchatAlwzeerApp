@@ -1,356 +1,213 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'widgets/message_status_widget.dart';
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(const AlWazirChatApp());
+void main() {
+  runApp(const MyApp());
 }
 
-class AlWazirChatApp extends StatelessWidget {
-  const AlWazirChatApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Al-Wazir Chat',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF121212),
-        primaryColor: const Color(0xFFD4AF37),
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: const Color(0xFF0F1417),
+        appBarTheme: const AppBarTheme(backgroundColor: Color(0xFF1F2C34)),
       ),
-      home: const LoginScreen(),
+      home: const ChatScreen(),
     );
   }
 }
 
-// ---------------------------------------------------------
-// 1. شاشة تسجيل الدخول (تسجيل / دخول)
-// ---------------------------------------------------------
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class ChatScreen extends StatefulWidget {
+  const ChatScreen({Key? key}) : super(key: key);
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _phoneController = TextEditingController();
-  String _selectedCountryCode = '+967';
+class _ChatScreenState extends State<ChatScreen> {
+  final TextEditingController _controller = TextEditingController();
+  bool _isWriting = false;
+  bool _isRecording = false;
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF121212),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Spacer(),
-              // شعار التاج الملكي
-              Container(
-                width: 90,
-                height: 90,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFD4AF37),
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text('👑', style: TextStyle(fontSize: 45)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                '👑 Al-Wazir Chat',
-                style: TextStyle(
-                  color: Color(0xFFD4AF37),
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'أدخل رقم هاتفك بترميز الدولة للاشتراك',
-                style: TextStyle(color: Colors.white70, fontSize: 15),
-              ),
-              const SizedBox(height: 30),
-              // حقول إدخال الرقم ورمز الدولة
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFFD4AF37)),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        dropdownColor: const Color(0xFF1E232A),
-                        value: _selectedCountryCode,
-                        items: ['+967', '+966', '+971', '+1', '+20']
-                            .map((code) => DropdownMenuItem(
-                                  value: code,
-                                  child: Text(
-                                    code,
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ))
-                            .toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            setState(() => _selectedCountryCode = val);
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TextField(
-                      controller: _phoneController,
-                      keyboardType: TextInputType.phone,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        labelText: 'رقم الهاتف',
-                        labelStyle: const TextStyle(color: Color(0xFFD4AF37)),
-                        enabledBorder: OutlineInputBorder(
-                          borderSide: const BorderSide(color: Color(0xFF9C27B0)),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: const BorderSide(color: Color(0xFFD4AF37), width: 2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 25),
-              // زر دخول / تسجيل
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD4AF37),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const MainTabsScreen()),
-                    );
-                  },
-                  child: const Text(
-                    'دخول / تسجيل',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              const Spacer(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------
-// 2. الشاشة الرئيسية والتنقل السفلي (المحادثات، الحالات، المجموعات)
-// ---------------------------------------------------------
-class MainTabsScreen extends StatefulWidget {
-  const MainTabsScreen({super.key});
-
-  @override
-  State<MainTabsScreen> createState() => _MainTabsScreenState();
-}
-
-class _MainTabsScreenState extends State<MainTabsScreen> {
-  int _currentIndex = 0;
-
-  final List<Widget> _pages = const [
-    ChatsTab(),
-    StatusTab(),
-    GroupsTab(),
+  final List<Map<String, dynamic>> _messages = [
+    {
+      'text': 'السلام عليكم، مرحباً بك في Al-Wazir Chat 👑',
+      'isMe': false,
+      'isAudio': false,
+      'time': '10:00 ص',
+      'status': MessageStatus.read,
+    },
+    {
+      'text': 'وعليكم السلام! تطبيق ممتاز جداً.',
+      'isMe': true,
+      'isAudio': false,
+      'time': '10:01 ص',
+      'status': MessageStatus.read,
+    },
   ];
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _pages[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        backgroundColor: const Color(0xFF181818),
-        selectedItemColor: const Color(0xFFD4AF37),
-        unselectedItemColor: Colors.grey,
-        onTap: (index) {
-          setState(() => _currentIndex = index);
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_rounded),
-            label: 'المحادثات',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.style_rounded),
-            label: 'الحالات',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.groups_rounded),
-            label: 'المجموعات',
-          ),
-        ],
+  void initState() {
+    super.initState();
+    _controller.addListener(() {
+      setState(() {
+        _isWriting = _controller.text.trim().isNotEmpty;
+      });
+    });
+  }
+
+  void _sendMessage() {
+    if (_controller.text.trim().isEmpty) return;
+    setState(() {
+      _messages.add({
+        'text': _controller.text,
+        'isMe': true,
+        'isAudio': false,
+        'time': '10:02 ص',
+        'status': MessageStatus.sent,
+      });
+      _controller.clear();
+      _isWriting = false;
+    });
+  }
+
+  void _toggleRecording() {
+    setState(() {
+      _isRecording = !_isRecording;
+      if (!_isRecording) {
+        // إضافة رسالة صوتية وهمية للعرض
+        _messages.add({
+          'text': 'رسالة صوتية (0:05)',
+          'isMe': true,
+          'isAudio': true,
+          'time': '10:03 ص',
+          'status': MessageStatus.sent,
+        });
+      }
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_isRecording ? 'جاري التسجيل الصوتي...' : 'تم إرسال التسجيل الصوتي'),
+        duration: const Duration(seconds: 1),
       ),
     );
   }
-}
-
-// ---------------------------------------------------------
-// 3. تبويب المحادثات
-// ---------------------------------------------------------
-class ChatsTab extends StatelessWidget {
-  const ChatsTab({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E232A),
-        title: const Row(
+        titleSpacing: 0,
+        title: Row(
           children: [
-            Text('👑 ', style: TextStyle(fontSize: 20)),
-            Text('Al-Wazir Chat', style: TextStyle(color: Color(0xFFD4AF37))),
+            const CircleAvatar(
+              backgroundColor: Colors.amber,
+              child: Icon(Icons.person, color: Colors.black),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text('مستخدم Al-Wazir', style: TextStyle(fontSize: 16)),
+                Text('متصل الآن', style: TextStyle(fontSize: 12, color: Colors.greenAccent)),
+              ],
+            ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.phone, color: Color(0xFFD4AF37)),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.videocam, color: Color(0xFFD4AF37)),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.more_vert, color: Color(0xFFD4AF37)),
-            onPressed: () {},
-          ),
-        ],
       ),
       body: Column(
         children: [
-          const Expanded(
-            child: Center(
-              child: Text(
-                'لا توجد محادثات حالياً',
-                style: TextStyle(color: Colors.white54, fontSize: 16),
-              ),
-            ),
-          ),
-          // شريط كتابة الرسالة الأسفل
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            color: const Color(0xFF181818),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.camera_alt, color: Color(0xFFD4AF37)),
-                  onPressed: () {},
-                ),
-                IconButton(
-                  icon: const Icon(Icons.image, color: Color(0xFFD4AF37)),
-                  onPressed: () {},
-                ),
-                const Expanded(
-                  child: TextField(
-                    style: TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: 'اكتب رسالة...',
-                      hintStyle: TextStyle(color: Colors.grey),
-                      border: InputBorder.none,
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final msg = _messages[index];
+                final isMe = msg['isMe'] as bool;
+                final isAudio = msg['isAudio'] as bool? ?? false;
+
+                return Align(
+                  alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isMe ? const Color(0xFF005C4B) : const Color(0xFF202C33),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (isAudio)
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.play_arrow, color: Colors.amber, size: 28),
+                              const SizedBox(width: 6),
+                              Text(msg['text'], style: const TextStyle(color: Colors.white, fontSize: 14)),
+                            ],
+                          )
+                        else
+                          Text(msg['text'], style: const TextStyle(color: Colors.white, fontSize: 15)),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(msg['time'], style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                            if (isMe) ...[
+                              const SizedBox(width: 4),
+                              MessageStatusWidget(
+                                status: msg['status'] as MessageStatus,
+                                timeText: '',
+                              ),
+                            ]
+                          ],
+                        ),
+                      ],
                     ),
                   ),
+                );
+              },
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            color: const Color(0xFF1F2C34),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _controller,
+                    decoration: InputDecoration(
+                      hintText: _isRecording ? 'جاري التسجيل...' : 'اكتب رسالة...',
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                    enabled: !_isRecording,
+                  ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.send, color: Color(0xFFD4AF37)),
-                  onPressed: () {},
+                GestureDetector(
+                  onTap: _isWriting ? _sendMessage : _toggleRecording,
+                  child: CircleAvatar(
+                    backgroundColor: _isRecording ? Colors.red : Colors.amber,
+                    child: Icon(
+                      _isWriting
+                          ? Icons.send
+                          : (_isRecording ? Icons.stop : Icons.mic),
+                      color: Colors.black,
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------
-// 4. تبويب الحالات
-// ---------------------------------------------------------
-class StatusTab extends StatelessWidget {
-  const StatusTab({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E232A),
-        centerTitle: true,
-        title: const Text('الحالات', style: TextStyle(color: Color(0xFFD4AF37))),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'اضغط + لإضافة حالة جديدة (صور / فيديو)',
-              style: TextStyle(color: Colors.white70, fontSize: 16),
-            ),
-            const SizedBox(height: 20),
-            FloatingActionButton(
-              backgroundColor: const Color(0xFFD4AF37),
-              onPressed: () {},
-              child: const Icon(Icons.add_a_photo, color: Colors.black),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------
-// 5. تبويب المجموعات
-// ---------------------------------------------------------
-class GroupsTab extends StatelessWidget {
-  const GroupsTab({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF1E232A),
-        centerTitle: true,
-        title: const Text('المجموعات', style: TextStyle(color: Color(0xFFD4AF37))),
-      ),
-      body: const Center(
-        child: Text(
-          'لا توجد مجموعات حتى الآن',
-          style: TextStyle(color: Colors.white54, fontSize: 16),
-        ),
       ),
     );
   }
