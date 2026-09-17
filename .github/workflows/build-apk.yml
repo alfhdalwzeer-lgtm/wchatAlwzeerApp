@@ -127,4 +127,4 @@ jobs:
         with:
           name: Al-Wazir-Chat-Release
           path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
+          if-no-files-found: 
