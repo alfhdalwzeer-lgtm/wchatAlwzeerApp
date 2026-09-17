@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Al-Wazir Chat APK
 
 on:
   push:
@@ -15,11 +15,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. تحميل المشروع
+      # تحميل المشروع
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. إعداد Java
+      # إعداد Java 17
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -27,35 +27,33 @@ jobs:
           java-version: '17'
           cache: gradle
 
-      # 3. إعداد Flutter
+      # إعداد Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      # 4. التحقق من Flutter
-      - name: Flutter doctor
-        run: flutter doctor -v
-
-      # 5. تنظيف ملفات البناء القديمة
-      - name: Flutter clean
-        run: flutter clean
-
-      # 6. تحميل الحزم
+      # تحميل مكتبات المشروع
       - name: Get dependencies
         run: flutter pub get
 
-      # 7. تحليل المشروع
-      - name: Analyze
+      # فحص المشروع
+      - name: Analyze Flutter project
         run: flutter analyze
 
-      # 8. بناء APK Release
-      - name: Build APK
+      # بناء APK Release
+      - name: Build Release APK
         run: flutter build apk --release
 
-      # 9. رفع APK كملف Artifact
-      - name: Upload APK Artifact
+      # التأكد من وجود APK
+      - name: Verify APK
+        run: |
+          test -f build/app/outputs/flutter-apk/app-release.apk
+          ls -lh build/app/outputs/flutter-apk/app-release.apk
+
+      # رفع APK إلى GitHub Actions
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Al-Wazir-Chat-Release
