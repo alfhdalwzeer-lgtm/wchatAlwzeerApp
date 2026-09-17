@@ -189,7 +189,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               Text('تم إرسال رمز التحقق إلى الرقم:\n${widget.phoneNumber}', textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 14)),
               const SizedBox(height: 40),
               Row(
-                mainAxisAlignment: MainSpacing.spaceEvenly,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: List.generate(4, (index) {
                   return Container(
                     width: 60,
