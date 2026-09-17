@@ -10,6 +10,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+    dependencies:
+  flutter_localizations:
+    sdk: flutter
 
   # الاتصال والمحادثة الفورية
   socket_io_client: ^2.0.3+1
