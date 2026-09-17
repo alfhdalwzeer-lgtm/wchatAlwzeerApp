@@ -1,130 +1,38 @@
-name: Build Al-Wazir Chat APK
+name: Build Release APK
 
 on:
   push:
-    branches:
-      - main
-
+    branches: [ "main" ]
   pull_request:
-    branches:
-      - main
+    branches: [ "main" ]
 
 jobs:
   build:
-    name: Build Release APK
     runs-on: ubuntu-latest
 
     steps:
-      # =====================================================
-      # 1. تحميل المشروع
-      # =====================================================
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # =====================================================
-      # 2. إعداد Java
-      # =====================================================
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v3
         with:
-          distribution: zulu
+          distribution: 'zulu'
           java-version: '17'
-          cache: gradle
 
-      # =====================================================
-      # 3. إعداد Flutter
-      # =====================================================
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: stable
-          cache: true
+          channel: 'stable'
 
-      # =====================================================
-      # 4. التحقق من Flutter
-      # =====================================================
-      - name: Flutter doctor
-        run: flutter doctor -v
-
-      # =====================================================
-      # 5. تجهيز Firebase
-      #
-      # أنشئ Secret في GitHub باسم:
-      # FIREBASE_GOOGLE_SERVICES_JSON
-      #
-      # وضع بداخله محتوى google-services.json كاملاً.
-      # =====================================================
-      - name: Create Firebase configuration
-        env:
-          FIREBASE_GOOGLE_SERVICES_JSON: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON }}
-        run: |
-          if [ -z "$FIREBASE_GOOGLE_SERVICES_JSON" ]; then
-            echo "ERROR: FIREBASE_GOOGLE_SERVICES_JSON is not configured."
-            exit 1
-          fi
-
-          mkdir -p android/app
-
-          printf '%s' "$FIREBASE_GOOGLE_SERVICES_JSON" \
-            > android/app/google-services.json
-
-          echo "Firebase configuration created successfully."
-
-      # =====================================================
-      # 6. تنظيف المشروع
-      # =====================================================
-      - name: Flutter clean
-        run: flutter clean
-
-      # =====================================================
-      # 7. تحميل Dependencies
-      # =====================================================
       - name: Get dependencies
         run: flutter pub get
 
-      # =====================================================
-      # 8. فحص المشروع
-      # =====================================================
-      - name: Analyze Flutter project
-        run: flutter analyze
-
-      # =====================================================
-      # 9. التحقق من Firebase configuration
-      # =====================================================
-      - name: Verify Firebase configuration
-        run: |
-          test -f android/app/google-services.json
-
-          echo "Checking Firebase project configuration..."
-
-          grep -q '"project_id"' android/app/google-services.json
-          grep -q '"package_name"' android/app/google-services.json
-
-          echo "Firebase configuration file is valid."
-
-      # =====================================================
-      # 10. بناء APK Release
-      # =====================================================
       - name: Build Release APK
         run: flutter build apk --release
 
-      # =====================================================
-      # 11. التحقق من وجود APK
-      # =====================================================
-      - name: Verify APK
-        run: |
-          test -f build/app/outputs/flutter-apk/app-release.apk
-
-          ls -lh build/app/outputs/flutter-apk/app-release.apk
-
-          echo "APK built successfully."
-
-      # =====================================================
-      # 12. رفع APK
-      # =====================================================
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Al-Wazir-Chat-Release
+          name: app-release
           path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
