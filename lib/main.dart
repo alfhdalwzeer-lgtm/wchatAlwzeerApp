@@ -1,51 +1,34 @@
+cat > lib/main.dart <<'EOF'
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'home_screen.dart';
 
-import 'screens/home_screen.dart';
-
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  runApp(const AlWazirApp());
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint('FIREBASE_ERROR: $e');
+  }
+
+  runApp(const MyApp());
 }
 
-class AlWazirApp extends StatelessWidget {
-  const AlWazirApp({super.key});
-
-  static const gold = Color(0xFFFFC107);
-  static const header = Color(0xFF1F2C34);
-  static const background = Color(0xFF0F1417);
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Al-Wazir Chat',
       debugShowCheckedModeBanner: false,
-
-      title: 'الفهد',
-
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-
-        scaffoldBackgroundColor: background,
-
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: gold,
-          brightness: Brightness.dark,
-        ),
-
-        appBarTheme: const AppBarTheme(
-          backgroundColor: header,
-          foregroundColor: Colors.white,
-          elevation: 0,
-        ),
-
-        dividerColor: const Color(0xFF3B4146),
+      theme: ThemeData.dark().copyWith(
+        scaffoldBackgroundColor: const Color(0xFF101820),
+        primaryColor: const Color(0xFFFFC107),
       ),
-
-      home: const Directionality(
-        textDirection: TextDirection.rtl,
-        child: HomeScreen(),
-      ),
+      home: const HomeScreen(),
     );
   }
 }
+EOF
